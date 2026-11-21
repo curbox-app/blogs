@@ -1,0 +1,157 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import Base from './Base.astro';
+import { LINKS, fmtDate, readingTime, url } from '../consts';
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+  prev?: CollectionEntry<'blog'>;
+  next?: CollectionEntry<'blog'>;
+}
+
+const { post, prev, next } = Astro.props;
+const { title, description, pubDate, updatedDate, tags, author } = post.data;
+const permalink = new URL(url(`${post.id}/`), Astro.site).href;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: title,
+  description,
+  datePublished: pubDate.toISOString(),
+  dateModified: (updatedDate ?? pubDate).toISOString(),
+  author: { '@type': 'Organization', name: author },
+  publisher: { '@type': 'Organization', name: 'Curbox', url: LINKS.home },
+  mainEntityOfPage: permalink,
+  keywords: tags.join(', '),
+  about: {
+    '@type': 'SoftwareApplication',
+    name: 'Curbox',
+    operatingSystem: 'Android',
+    applicationCategory: 'LifestyleApplication',
+    license: 'https://www.gnu.org/licenses/gpl-3.0.html',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  },
+};
+---
+
+<Base title={title} description={description} type="article" jsonLd={jsonLd}>
+  <div class="progress" aria-hidden="true"><span data-progress></span></div>
+
+  <article class="post">
+    <header class="wrap head">
+      <a class="mono back" href={url()}>← Journal</a>
+      <div class="tags">{tags.map((t) => <a class="tag" href={url(`tags/${t}/`)}>{t}</a>)}</div>
+      <h1>{title}</h1>
+      <p class="lede">{description}</p>
+      <p class="mono meta">
+        {author}{' · '}<time datetime={pubDate.toISOString()}>{fmtDate(pubDate)}</time>
+        {updatedDate && <>{' · updated '}<time datetime={updatedDate.toISOString()}>{fmtDate(updatedDate)}</time></>}
+        {` · ${readingTime(post.body)} min read`}
+      </p>
+    </header>
+
+    <div class="prose">
+      <slot />
+    </div>
+
+    <aside class="wrap-narrow cta">
+      <p class="mono">A pause before the scroll</p>
+      <p class="cta-title">Try it on your own phone.</p>
+      <p>Curbox is free and open source (GPL-3.0). No ads, no subscriptions, no account needed.</p>
+      <div class="row">
+        <a class="btn btn--primary" href={LINKS.download}>Install for Android</a>
+        <a class="btn btn--ghost" href={LINKS.docs}>Read the docs</a>
+      </div>
+    </aside>
+
+    <nav class="wrap-narrow pager" aria-label="More posts">
+      {prev ? <a href={url(`${prev.id}/`)}><span class="mono">← Newer</span>{prev.data.title}</a> : <span />}
+      {next && <a class="right" href={url(`${next.id}/`)}><span class="mono">Older →</span>{next.data.title}</a>}
+    </nav>
+  </article>
+</Base>
+
+<script>
+  const bar = document.querySelector<HTMLElement>('[data-progress]');
+  const onScroll = () => {
+    const h = document.documentElement;
+    const p = h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight);
+    if (bar) bar.style.transform = `scaleX(${p})`;
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+</script>
+
+<style>
+  .progress { position: fixed; top: 4rem; left: 0; right: 0; height: 2px; z-index: 19; }
+  .progress span { display: block; height: 100%; background: var(--fg); transform: scaleX(0); transform-origin: left; }
+
+  .head { max-width: 52rem; padding: 4rem 0 3rem; }
+  .back { text-decoration: none; display: inline-block; margin-bottom: 2rem; }
+  .back:hover { color: var(--fg); }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.25rem; }
+  h1 { margin: 0 0 1.25rem; font: 800 clamp(2.4rem, 6vw, 4.4rem)/1 var(--font-display); letter-spacing: -0.03em; }
+  .lede { font-size: 1.25rem; color: var(--muted); margin: 0 0 1.5rem; max-width: 44ch; }
+  .meta { margin: 0; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+
+  .wrap-narrow, .prose { width: min(var(--measure), 100% - 2.5rem); margin-inline: auto; }
+
+  .prose :global(h2) { font: 700 1.9rem/1.15 var(--font-display); letter-spacing: -0.01em; margin: 3.5rem 0 1rem; }
+  .prose :global(h3) { font: 600 1.35rem/1.25 var(--font-display); margin: 2.5rem 0 0.75rem; }
+  .prose :global(p), .prose :global(li) { color: #d9d9d6; }
+  .prose :global(strong) { color: var(--fg); }
+  .prose :global(a) { text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  .prose :global(a:hover) { text-decoration-thickness: 2px; }
+  .prose :global(ul), .prose :global(ol) { padding-left: 1.25rem; }
+  .prose :global(li) { margin: 0.35rem 0; }
+  .prose :global(li::marker) { color: var(--muted); }
+  .prose :global(hr) { border: 0; border-top: 1px solid var(--line); margin: 3rem 0; }
+  .prose :global(blockquote) {
+    margin: 2.5rem 0;
+    padding: 1.5rem 1.75rem;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--fg);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    background: var(--panel);
+    font: 400 italic 1.25rem/1.45 var(--font-display);
+  }
+  .prose :global(blockquote p) { margin: 0; color: var(--fg); }
+  .prose :global(code) {
+    font: 0.88em var(--font-mono);
+    background: #141414;
+    border: 1px solid var(--line);
+    padding: 0.1em 0.35em;
+    border-radius: 6px;
+  }
+  .prose :global(pre) {
+    padding: 1.25rem;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    overflow-x: auto;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  .prose :global(pre code) { background: none; border: 0; padding: 0; }
+  .prose :global(table) { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.95rem; }
+  .prose :global(th), .prose :global(td) { text-align: left; padding: 0.7rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .prose :global(th) { font: 700 0.72rem/1.2 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+  .cta {
+    margin-top: 5rem;
+    padding: 2.25rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: radial-gradient(500px 240px at 100% 0%, rgba(255, 255, 255, 0.07), transparent 70%), var(--panel);
+  }
+  .cta .mono { margin: 0; }
+  .cta-title { font: 700 1.9rem/1.1 var(--font-display); margin: 0.5rem 0; }
+  .cta p:not(.mono):not(.cta-title) { color: var(--muted); margin: 0 0 1.5rem; }
+  .row { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+
+  .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 3rem; }
+  .pager a { display: grid; gap: 0.35rem; padding: 1.25rem; border: 1px solid var(--line); border-radius: 14px; text-decoration: none; font: 600 1.05rem/1.3 var(--font-display); }
+  .pager a:hover { border-color: var(--fg); }
+  .pager .right { text-align: right; }
+  @media (max-width: 600px) { .pager { grid-template-columns: 1fr; } .pager .right { text-align: left; } }
+</style>

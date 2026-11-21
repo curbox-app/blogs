@@ -1,0 +1,59 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { fmtDate, readingTime, url } from '../consts';
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+  index: number;
+}
+
+const { post, index } = Astro.props;
+const { title, description, pubDate, tags, pause } = post.data;
+---
+
+<article class="card">
+  <span class="num mono" aria-hidden="true">{String(index).padStart(2, '0')}</span>
+  <div class="body">
+    <p class="meta mono">
+      <time datetime={pubDate.toISOString()}>{fmtDate(pubDate)}</time> · {readingTime(post.body)} min read
+    </p>
+    <h3><a href={url(`${post.id}/`)}>{title}</a></h3>
+    <p class="desc">{description}</p>
+    <div class="tags">{tags.map((t) => <a class="tag" href={url(`tags/${t}/`)}>{t}</a>)}</div>
+  </div>
+  {pause && <p class="pause" aria-hidden="true">“{pause}”</p>}
+</article>
+
+<style>
+  .card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 4rem 1fr minmax(0, 14rem);
+    gap: 1.5rem;
+    padding: 2rem 0;
+    border-top: 1px solid var(--line);
+    transition: background 0.2s ease;
+  }
+  .card:hover { background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent); }
+  .num { font-size: 0.9rem; padding-top: 0.3rem; }
+  .meta { margin: 0 0 0.5rem; }
+  h3 { margin: 0 0 0.6rem; font: 600 clamp(1.4rem, 2.6vw, 1.9rem)/1.15 var(--font-display); }
+  h3 a { text-decoration: none; }
+  /* Make the whole card clickable */
+  h3 a::after { content: ''; position: absolute; inset: 0; }
+  .card:hover h3 a { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+  .desc { margin: 0 0 1rem; color: var(--muted); max-width: 52ch; }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; position: relative; z-index: 1; }
+  .pause {
+    margin: 0;
+    align-self: center;
+    font: 400 italic 0.95rem/1.4 var(--font-display);
+    color: var(--muted);
+    border-left: 1px solid var(--line);
+    padding-left: 1rem;
+  }
+  @media (max-width: 760px) {
+    .card { grid-template-columns: 2.5rem 1fr; }
+    .pause { display: none; }
+  }
+</style>

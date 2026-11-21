@@ -1,0 +1,82 @@
+---
+import { LINKS, url } from '../consts';
+---
+
+<header class="site-header">
+  <div class="wrap bar">
+    <a class="brand" href={url()}>
+      <span class="logo" aria-hidden="true">c</span>
+      <span>Curbox <em>Journal</em></span>
+    </a>
+
+    <!-- A gentle nod to the Short-Form Video Counter: how far have you scrolled? -->
+    <p class="meter mono" aria-live="off" title="Scrolling here is the good kind.">
+      scrolled <span data-meter>0.00</span> m
+    </p>
+
+    <nav aria-label="Primary">
+      <a href={url()}>Posts</a>
+      <a href={LINKS.docs}>Docs</a>
+      <a class="btn btn--primary" href={LINKS.download}>Get Curbox</a>
+    </nav>
+  </div>
+</header>
+
+<script>
+  // ~96 CSS px per inch → 3780 px per metre.
+  const el = document.querySelector<HTMLElement>('[data-meter]');
+  let max = 0;
+  const update = () => {
+    max = Math.max(max, window.scrollY);
+    if (el) el.textContent = (max / 3780).toFixed(2);
+  };
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    height: 4rem;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    font: 600 1.05rem/1 var(--font-display);
+  }
+  .brand em { font-style: normal; color: var(--muted); font-weight: 400; }
+  .logo {
+    display: grid;
+    place-items: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 8px;
+    background: var(--fg);
+    color: var(--bg);
+    font: 800 1.1rem/1 var(--font-display);
+  }
+  .meter { margin: 0; }
+  .meter span { color: var(--fg); font-variant-numeric: tabular-nums; }
+  nav { display: flex; align-items: center; gap: 1.25rem; }
+  nav a:not(.btn) { text-decoration: none; color: var(--muted); font-size: 0.95rem; }
+  nav a:not(.btn):hover { color: var(--fg); }
+  nav .btn { padding: 0.55rem 1rem; font-size: 0.85rem; }
+
+  @media (max-width: 720px) {
+    .meter { display: none; }
+    nav { gap: 0.9rem; }
+  }
+</style>

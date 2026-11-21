@@ -1,0 +1,45 @@
+---
+import { LINKS, url } from '../consts';
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="wrap grid">
+    <div>
+      <p class="big">Made to help you use your phone with intention.</p>
+      <p class="mono">Free and open source since 2024 · GPL-3.0</p>
+    </div>
+    <ul>
+      <li class="mono">Curbox</li>
+      <li><a href={LINKS.home}>Home</a></li>
+      <li><a href={LINKS.features}>Features</a></li>
+      <li><a href={LINKS.download}>Download</a></li>
+      <li><a href={LINKS.docs}>Docs</a></li>
+    </ul>
+    <ul>
+      <li class="mono">Community</li>
+      <li><a href={LINKS.github}>GitHub</a></li>
+      <li><a href={LINKS.discord}>Discord</a></li>
+      <li><a href={LINKS.telegram}>Telegram</a></li>
+      <li><a href={LINKS.donate}>Donate</a></li>
+    </ul>
+    <ul>
+      <li class="mono">Journal</li>
+      <li><a href={url()}>All posts</a></li>
+      <li><a href={url('rss.xml')}>RSS feed</a></li>
+      <li><a href={LINKS.privacy}>Privacy</a></li>
+    </ul>
+  </div>
+  <div class="wrap legal mono">© {year} Curbox contributors</div>
+</footer>
+
+<style>
+  .site-footer { border-top: 1px solid var(--line); margin-top: 6rem; padding: 4rem 0 2rem; }
+  .grid { display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: 2rem; }
+  .big { font: 600 1.6rem/1.2 var(--font-display); margin: 0 0 1rem; max-width: 22ch; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; align-content: start; }
+  ul a { text-decoration: none; color: var(--muted); }
+  ul a:hover { color: var(--fg); }
+  .legal { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr 1fr; } .grid > div { grid-column: 1 / -1; } }
+</style>

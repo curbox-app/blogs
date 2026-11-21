@@ -1,0 +1,216 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import PauseCard from '../components/PauseCard.astro';
+import PostCard from '../components/PostCard.astro';
+import { LINKS, SITE_DESCRIPTION, SITE_TITLE, fmtDate, readingTime, url } from '../consts';
+
+const posts = (await getCollection('blog')).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+const featured = posts.find((p) => p.data.featured) ?? posts[0];
+const rest = posts.filter((p) => p !== featured);
+const tags = [...new Set(posts.flatMap((p) => p.data.tags))].sort();
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Blog',
+  name: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  url: new URL(url(), Astro.site).href,
+  publisher: { '@type': 'Organization', name: 'Curbox', url: LINKS.home },
+  blogPost: posts.map((p) => ({
+    '@type': 'BlogPosting',
+    headline: p.data.title,
+    datePublished: p.data.pubDate.toISOString(),
+    url: new URL(url(`${p.id}/`), Astro.site).href,
+  })),
+};
+
+const nudges = [
+  ['Focus Boundaries', 'App Pause · Short-form video · Websites'],
+  ['Mindful Nudges', 'Auto DND · UI Hider · Messages · Grayscale'],
+  ['Unlock Challenges', 'Never · Require effort · Wait to unlock'],
+];
+---
+
+<Base jsonLd={jsonLd}>
+  <section class="hero wrap">
+    <div class="copy">
+      <p class="mono eyebrow">Less scrolling · More living</p>
+      <h1>
+        Notes on <span class="strike">doom</span>scrolling<br />
+        <span class="soft">with intention.</span>
+      </h1>
+      <p class="lede">
+        The Curbox Journal is where we write about the pause before the scroll: how the free,
+        open-source Android app works, why it's built the way it is, and practical ways to get
+        your attention back.
+      </p>
+      <div class="cta">
+        <a class="btn btn--primary" href="#posts">Start reading ↓</a>
+        <a class="btn btn--ghost" href={LINKS.github}>Star on GitHub</a>
+      </div>
+      <ul class="pillars">
+        {nudges.map(([h, s]) => (
+          <li><strong>{h}</strong><span class="mono">{s}</span></li>
+        ))}
+      </ul>
+    </div>
+    <div class="visual">
+      <PauseCard />
+      <p class="mono hint">↑ A live “Wait to Unlock” pause. Try it.</p>
+    </div>
+  </section>
+
+  {featured && (
+    <section class="wrap featured" aria-labelledby="featured-title">
+      <p class="mono">Featured</p>
+      <a class="feature-card" href={url(`${featured.id}/`)}>
+        <div>
+          <p class="mono">
+            {fmtDate(featured.data.pubDate)} · {readingTime(featured.body)} min read
+          </p>
+          <h2 id="featured-title">{featured.data.title}</h2>
+          <p class="desc">{featured.data.description}</p>
+          <span class="read">Read the post →</span>
+        </div>
+        {featured.data.pause && <blockquote>“{featured.data.pause}”</blockquote>}
+      </a>
+    </section>
+  )}
+
+  <section class="wrap list" id="posts" aria-labelledby="posts-title">
+    <div class="list-head">
+      <h2 id="posts-title">All posts</h2>
+      <div class="tags" role="group" aria-label="Filter by tag">
+        <button class="tag is-active" type="button" data-filter="">All</button>
+        {tags.map((t) => <button class="tag" type="button" data-filter={t}>{t}</button>)}
+      </div>
+    </div>
+    <div data-list>
+      {rest.map((post, i) => (
+        <div data-tags={post.data.tags.join(' ')}>
+          <PostCard post={post} index={i + 2} />
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="wrap closer">
+    <p class="mono">You made it to the bottom</p>
+    <h2>Now put the phone down.<br /><span class="soft">Or set it up so it helps you.</span></h2>
+    <p>Curbox is free, has no ads, and doesn't need an account.</p>
+    <div class="cta">
+      <a class="btn btn--primary" href={LINKS.download}>Install for Android</a>
+      <a class="btn btn--ghost" href={LINKS.docs}>Read the docs</a>
+    </div>
+  </section>
+</Base>
+
+<script>
+  const buttons = document.querySelectorAll<HTMLButtonElement>('[data-filter]');
+  const items = document.querySelectorAll<HTMLElement>('[data-list] > [data-tags]');
+  buttons.forEach((b) =>
+    b.addEventListener('click', () => {
+      const f = b.dataset.filter!;
+      buttons.forEach((x) => x.classList.toggle('is-active', x === b));
+      items.forEach((el) => {
+        el.hidden = !!f && !el.dataset.tags!.split(' ').includes(f);
+      });
+    }),
+  );
+</script>
+
+<style>
+  .hero {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    align-items: center;
+    gap: 3rem;
+    padding: 5rem 0 4rem;
+    min-height: min(calc(100svh - 4rem), 60rem);
+  }
+  .eyebrow { margin: 0 0 1.25rem; }
+  h1 {
+    margin: 0 0 1.5rem;
+    font: 800 clamp(2.8rem, 7vw, 5.6rem)/0.95 var(--font-display);
+    letter-spacing: -0.03em;
+  }
+  .soft { color: var(--muted); font-weight: 400; }
+  .strike { position: relative; color: var(--muted); }
+  .strike::after {
+    content: '';
+    position: absolute;
+    left: -2%;
+    right: -2%;
+    top: 55%;
+    height: 0.09em;
+    background: var(--fg);
+    transform-origin: left;
+    animation: strike 0.7s 0.6s cubic-bezier(0.7, 0, 0.2, 1) both;
+  }
+  @keyframes strike { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .lede { font-size: 1.2rem; color: var(--muted); max-width: 46ch; margin: 0 0 2rem; }
+  .cta { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .pillars {
+    list-style: none;
+    padding: 0;
+    margin: 3rem 0 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--line);
+  }
+  .pillars li { padding: 1rem 1rem 0 0; display: grid; gap: 0.3rem; }
+  .pillars strong { font: 600 1rem/1.2 var(--font-display); }
+  .pillars .mono { font-size: 0.62rem; line-height: 1.5; }
+  .visual { display: grid; justify-items: center; gap: 1.25rem; }
+  .hint { margin: 0; }
+
+  .featured { margin-top: 2rem; }
+  .feature-card {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 3rem;
+    align-items: center;
+    margin-top: 1rem;
+    padding: clamp(1.75rem, 4vw, 3.5rem);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    text-decoration: none;
+    background:
+      radial-gradient(600px 300px at 100% 0%, rgba(255, 255, 255, 0.07), transparent 70%),
+      var(--panel);
+    transition: border-color 0.2s ease;
+  }
+  .feature-card:hover { border-color: var(--fg); }
+  .feature-card h2 { margin: 0.6rem 0 1rem; font: 700 clamp(1.8rem, 4vw, 3rem)/1.05 var(--font-display); letter-spacing: -0.02em; }
+  .desc { color: var(--muted); margin: 0 0 1.5rem; }
+  .read { font-weight: 600; }
+  .feature-card:hover .read { text-decoration: underline; text-underline-offset: 4px; }
+  .feature-card blockquote {
+    margin: 0;
+    font: 400 italic clamp(1.2rem, 2.4vw, 1.7rem)/1.3 var(--font-display);
+    color: var(--muted);
+    border-left: 2px solid var(--fg);
+    padding-left: 1.5rem;
+  }
+
+  .list { margin-top: 6rem; }
+  .list-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 1rem; margin-bottom: 1rem; }
+  .list-head h2 { margin: 0; font: 700 2.2rem/1 var(--font-display); }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  button.tag { background: none; cursor: pointer; }
+  button.tag:hover, button.tag.is-active { color: var(--bg); background: var(--fg); border-color: var(--fg); }
+
+  .closer { margin-top: 7rem; text-align: center; display: grid; justify-items: center; gap: 0.5rem; }
+  .closer h2 { margin: 0.5rem 0; font: 800 clamp(2rem, 5vw, 3.6rem)/1 var(--font-display); letter-spacing: -0.02em; }
+  .closer p:not(.mono) { color: var(--muted); margin: 0 0 1.5rem; }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; min-height: 0; padding-top: 3rem; }
+    .feature-card { grid-template-columns: 1fr; gap: 1.5rem; }
+  }
+  @media (max-width: 560px) { .pillars { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .strike::after { animation: none; } }
+</style>

@@ -1,0 +1,134 @@
+---
+// An interactive mock of Curbox's pause screen + "Wait to Unlock" challenge.
+---
+
+<div class="phone" data-pause>
+  <div class="notch" aria-hidden="true"></div>
+  <div class="screen">
+    <p class="mono">App Pause · Instagram</p>
+    <p class="headline" data-headline>You've hit today's limit.</p>
+    <p class="msg" data-msg>
+      You've already spent <strong>1h 12m</strong> here today. Was that the plan?
+    </p>
+
+    <div class="ring" aria-hidden="true">
+      <svg viewBox="0 0 120 120">
+        <circle class="track" cx="60" cy="60" r="52"></circle>
+        <circle class="progress" cx="60" cy="60" r="52" data-progress></circle>
+      </svg>
+      <span data-count>5</span>
+    </div>
+
+    <div class="actions">
+      <a class="btn btn--primary" href="#posts" data-close>Close the app</a>
+      <button class="btn btn--ghost" type="button" disabled data-continue>
+        Wait to unlock…
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-pause]').forEach((root) => {
+    const count = root.querySelector<HTMLElement>('[data-count]')!;
+    const ring = root.querySelector<SVGCircleElement>('[data-progress]')!;
+    const cont = root.querySelector<HTMLButtonElement>('[data-continue]')!;
+    const close = root.querySelector<HTMLAnchorElement>('[data-close]')!;
+    const headline = root.querySelector<HTMLElement>('[data-headline]')!;
+    const msg = root.querySelector<HTMLElement>('[data-msg]')!;
+
+    const C = 2 * Math.PI * 52;
+    ring.style.strokeDasharray = `${C}`;
+    const total = 5000;
+    let start: number | null = null;
+
+    const tick = (t: number) => {
+      start ??= t;
+      const p = Math.min(1, (t - start) / total);
+      ring.style.strokeDashoffset = `${C * p}`;
+      count.textContent = String(Math.ceil((1 - p) * 5));
+      if (p < 1) requestAnimationFrame(tick);
+      else {
+        count.textContent = '✓';
+        cont.disabled = false;
+        cont.textContent = 'Continue anyway';
+      }
+    };
+
+    // Start the countdown only once the card is visible.
+    new IntersectionObserver((entries, obs) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        requestAnimationFrame(tick);
+        obs.disconnect();
+      }
+    }).observe(root);
+
+    cont.addEventListener('click', () => {
+      headline.textContent = 'Proceed limit reached.';
+      msg.textContent = "Okay, we won't stop you. But the posts below are a better use of the next five minutes.";
+      cont.disabled = true;
+      cont.textContent = 'Unlocked';
+    });
+
+    close.addEventListener('click', () => {
+      headline.textContent = 'Good call.';
+      msg.textContent = 'That pause is the whole idea. Here is something worth reading instead.';
+    });
+  });
+</script>
+
+<style>
+  .phone {
+    position: relative;
+    width: min(320px, 100%);
+    aspect-ratio: 9 / 18;
+    border: 1px solid var(--line);
+    border-radius: 42px;
+    padding: 14px;
+    background: linear-gradient(160deg, #161616, #050505);
+    box-shadow: 0 40px 120px -40px rgba(255, 255, 255, 0.15);
+    transform: rotate(3deg);
+    transition: transform 0.4s ease;
+  }
+  .phone:hover { transform: rotate(0deg); }
+  .notch {
+    position: absolute;
+    top: 22px;
+    left: 50%;
+    translate: -50% 0;
+    width: 84px;
+    height: 22px;
+    border-radius: 999px;
+    background: #000;
+    z-index: 1;
+  }
+  .screen {
+    height: 100%;
+    border-radius: 30px;
+    background: #000;
+    padding: 3.5rem 1.4rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+  .screen .mono { margin: 0; font-size: 0.65rem; }
+  .headline { margin: 0; font: 700 1.6rem/1.1 var(--font-display); }
+  .msg { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.5; }
+  .msg strong { color: var(--fg); }
+  .ring { position: relative; width: 108px; margin: auto; }
+  .ring svg { width: 100%; rotate: -90deg; }
+  .ring circle { fill: none; stroke-width: 6; }
+  .track { stroke: var(--line); }
+  .progress { stroke: var(--fg); stroke-linecap: round; }
+  .ring span {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font: 700 1.9rem/1 var(--font-mono);
+  }
+  .actions { display: grid; gap: 0.6rem; }
+  .actions .btn { justify-content: center; }
+  .actions button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .phone { transform: none; } }
+</style>
